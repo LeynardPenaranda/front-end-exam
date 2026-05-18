@@ -1,519 +1,190 @@
-# AgriConnect – Technical Design & Architecture Specification
+# AgriConnect Platform
 
-This repository contains the conceptual system architecture, frontend organization, mock-data structures, state management flow, real-time update simulation, and testing strategies for the **AgriConnect High-Concurrency Agricultural Supply Chain Platform**.
+AgriConnect is a Next.js 15 dashboard for a high-concurrency agricultural supply chain workflow. It uses Tailwind CSS for the interface, Recharts for analytics, and local mock state to simulate real-time distributor requests moving through a farmer approval queue.
 
-Per the examination instructions, this document outlines the complete dashboard design exercise without implementing actual backend services or production code.
+The app does not include backend services. Redis Pub/Sub, WebSockets, row locking, and database transactions are represented conceptually through a client-side stream simulation and typed mock service layer.
 
----
-
-# 1. System Core Architecture & Workflow
-
-AgriConnect is designed to support high-concurrency agricultural logistics operations where distributors communicate directly with farmers through a real-time digital ecosystem.
-
-## Farmer Listings
-
-Farmers publish agricultural inventory into a centralized digital catalog. Product listings and media assets are optimized using CDN caching and Incremental Static Regeneration (ISR) for fast delivery and reduced server load.
-
-### Technologies & Concepts
-
-- CDN-optimized image delivery
-- Incremental Static Regeneration (ISR)
-- Cached product catalogs
-- High-performance media rendering
-
----
-
-## Concurrent Request Broker
-
-Multiple distributors can simultaneously send purchase or logistics requests to farmers. The backend architecture ensures transactional integrity through:
-
-- ACID-compliant database transactions
-- Row-level locking
-- Safe concurrent request handling
-- Controlled state synchronization
-
-### Example Transactional Strategy
-
-```sql
-SELECT * FROM requests
-FOR UPDATE;
-```
-
-This ensures that multiple distributors cannot accidentally modify the same request simultaneously.
-
----
-
-## Real-time Synchronization
-
-Request state changes such as:
-
-```text
-Pending → Accepted
-```
-
-are instantly synchronized through:
-
-- Redis Pub/Sub messaging
-- WebSocket broadcasting
-- Real-time dashboard updates
-- No API polling or manual refreshes
-
-This enables sub-second synchronization between all connected dashboard users.
-
----
-
-## Next.js 15 Frontend
-
-The dashboard frontend is built using:
+## Tech Stack
 
 - Next.js 15 App Router
-- React-based component architecture
-- Streaming-ready layouts
-- Suspense-ready rendering strategy
-- Kanban-style dashboard organization
+- React 19
+- Tailwind CSS 4
+- Recharts
+- TypeScript
+- ESLint
 
-The interface dynamically updates whenever request states change.
+## Routes
 
----
+- `/` redirects to `/farmer/dashboard`
+- `/farmer/dashboard` renders the AgriConnect farmer operations dashboard
 
-# 2. Project Structure & Frontend Architecture
+## Implemented Features
 
-## Directory Structure (Next.js 15 App Router)
+- Dashboard header with request metrics
+- Pending and accepted Kanban workflow columns
+- Accept Request action that moves a request from Pending to Accepted
+- Simulated real-time request stream using `setInterval`
+- Mock request generation and queue insertion
+- Recharts area, bar, and pie visualizations
+- Typed request model and reusable data helpers
+- Responsive layout built with Tailwind CSS
 
-The project structure follows the Next.js 15 App Router architecture pattern while maintaining clean separation between layouts, routes, reusable components, utilities, and testing modules.
+## Project Structure
 
 ```text
 agriconnect-platform/
-├── app/
-│   ├── layout.tsx
-│   ├── page.tsx
+├── src/
+│   ├── app/
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── farmer/
+│   │       └── dashboard/
+│   │           ├── layout.tsx
+│   │           └── page.tsx
 │   │
-│   └── farmer/
-│       └── dashboard/
-│           ├── layout.tsx
-│           └── page.tsx
-│
-├── components/
-│   ├── ui/
-│   │   ├── button.tsx
-│   │   └── card.tsx
+│   ├── components/
+│   │   ├── ui/
+│   │   │   ├── button.tsx
+│   │   │   └── card.tsx
+│   │   ├── accepted-column.tsx
+│   │   ├── dashboard-client.tsx
+│   │   ├── dashboard-header.tsx
+│   │   ├── kanban-board.tsx
+│   │   ├── pending-column.tsx
+│   │   ├── request-analytics.tsx
+│   │   └── request-card.tsx
 │   │
-│   ├── dashboard-header.tsx
-│   ├── kanban-board.tsx
-│   ├── pending-column.tsx
-│   ├── accepted-column.tsx
-│   └── request-card.tsx
+│   ├── hooks/
+│   │   └── use-request-stream.ts
+│   │
+│   ├── services/
+│   │   └── mock-request-service.ts
+│   │
+│   ├── types/
+│   │   └── request.ts
+│   │
+│   └── utils/
+│       ├── cn.ts
+│       └── mock-data-factory.ts
 │
-├── services/
-│   └── mock-request-service.ts
-│
-├── utils/
-│   └── mock-data-factory.ts
-│
-├── hooks/
-│   └── use-request-stream.ts
-│
-└── tests/
-    ├── unit/
-    └── e2e/
+├── package.json
+├── package-lock.json
+├── next.config.ts
+├── postcss.config.mjs
+├── eslint.config.mjs
+└── tsconfig.json
 ```
 
----
+## File Responsibilities
 
-## Frontend Architecture Responsibilities
+### App Router
 
-### app/
+- `src/app/layout.tsx` defines global metadata and the root HTML shell.
+- `src/app/page.tsx` redirects the root route to `/farmer/dashboard`.
+- `src/app/farmer/dashboard/page.tsx` loads initial mock requests and renders the dashboard.
+- `src/app/farmer/dashboard/layout.tsx` defines route-level dashboard metadata.
+- `src/app/globals.css` configures Tailwind, theme tokens, and global font fallbacks.
 
-Contains route-level pages and layout wrappers using the App Router convention.
+### Components
 
-### components/
+- `dashboard-client.tsx` is the main interactive dashboard container.
+- `dashboard-header.tsx` renders stream status, actions, and summary metrics.
+- `request-analytics.tsx` renders Recharts visualizations.
+- `kanban-board.tsx` composes the Pending and Accepted columns.
+- `pending-column.tsx` renders requests waiting for approval.
+- `accepted-column.tsx` renders completed request history.
+- `request-card.tsx` renders request details and the Accept Request action.
+- `components/ui/button.tsx` and `components/ui/card.tsx` provide small reusable UI primitives.
 
-Contains reusable UI and dashboard-specific components.
+### Data And State
 
-### services/
+- `types/request.ts` defines request, status, priority, and stream event types.
+- `utils/mock-data-factory.ts` owns seed data, mock request generation, status transition helpers, and sorting.
+- `services/mock-request-service.ts` exposes dashboard-facing helpers for metrics, filtering, chart data, and request updates.
+- `hooks/use-request-stream.ts` manages local dashboard state, the simulated live stream, accept actions, and derived analytics.
+- `utils/cn.ts` joins conditional Tailwind class names.
 
-Contains mock request generators and simulated service logic.
-
-### utils/
-
-Contains helper utilities for timestamps, IDs, and mock data creation.
-
-### hooks/
-
-Contains streaming or event simulation hooks.
-
-### tests/
-
-Contains unit and end-to-end testing suites.
-
----
-
-# 3. State Management & Data Fetching Strategy
-
-The dashboard maintains a local collection of request items stored in component state.
-
-The state can be managed using:
-
-- React useState
-- Server Actions
-- TanStack Query
-- React Suspense streaming patterns
-
-The dashboard dynamically filters requests into separate columns based on their status values.
-
----
-
-## Example State Filtering Logic
+## State Flow
 
 ```text
-Pending Column:
-status === "Pending"
-
-Accepted Column:
-status === "Accepted"
+Initial mock data
+      |
+      v
+useRequestStream local state
+      |
+      +--> Pending and Accepted filters
+      +--> Dashboard metrics
+      +--> Recharts datasets
+      |
+      v
+Dashboard UI
 ```
 
-This allows the UI to instantly re-render whenever request data changes.
+When a user clicks `Accept Request`, the selected request changes from `Pending` to `Accepted`, the local state is updated, and the card is rendered in the Accepted column.
 
----
-
-## State Synchronization Flow
+## Simulated Real-Time Flow
 
 ```text
-Incoming Request
-        ↓
-Append to Local State
-        ↓
-Filter by Status
-        ↓
-Render Inside Correct Column
+setInterval timer
+      |
+      v
+generateIncomingRequest()
+      |
+      v
+appendIncomingRequest()
+      |
+      v
+Pending column and analytics update
 ```
 
----
+This simulates WebSocket-style push updates without requiring a backend.
 
-## Streaming Strategy
+## Mock Request Shape
 
-The dashboard may conceptually support:
-
-- React Suspense streaming
-- Live WebSocket subscriptions
-- Server Actions for mutations
-- Real-time state hydration
-
-without requiring actual backend implementation.
-
----
-
-# 4. Mock Data Design
-
-## Request Object Structure
-
-```json
-{
-  "id": "string | number",
-  "farmerName": "string",
-  "produce": "string",
-  "quantity": "number",
-  "status": "Pending | Accepted",
-  "timestamp": "ISO 8601 string"
-}
+```ts
+type ProduceRequest = {
+  id: number;
+  farmerName: string;
+  produce: string;
+  quantity: number;
+  unit: string;
+  status: "Pending" | "Accepted";
+  timestamp: string;
+  distributor: string;
+  location: string;
+  priority: "Standard" | "Express" | "Cold Chain";
+  routeEta: string;
+  value: number;
+  acceptedAt?: string;
+};
 ```
 
----
+## Local Development
 
-## Example Mock Data
+Install dependencies:
 
-```json
-[
-  {
-    "id": 101,
-    "farmerName": "Maria Santos",
-    "produce": "Yellow Corn",
-    "quantity": 25,
-    "status": "Accepted",
-    "timestamp": "2026-05-16T16:12:30Z"
-  },
-  {
-    "id": 102,
-    "farmerName": "Juan Dela Cruz",
-    "produce": "Rice Premium",
-    "quantity": 50,
-    "status": "Pending",
-    "timestamp": "2026-05-16T16:15:30Z"
-  },
-  {
-    "id": 103,
-    "farmerName": "Antonio Reyes",
-    "produce": "Red Onions",
-    "quantity": 10,
-    "status": "Pending",
-    "timestamp": "2026-05-16T16:18:02Z"
-  }
-]
+```bash
+npm install
 ```
 
----
+Start the development server:
 
-# 5. UI Component Layout
+```bash
+npm run dev
+```
 
-The dashboard is divided into two primary Kanban-style workflow columns.
-
----
-
-## Pending Column
-
-Displays:
-
-- Incoming requests
-- Farmer name
-- Produce information
-- Quantity
-- Arrival timestamp
-- Accept action button
-
-Each request card represents an unprocessed distributor request waiting for approval.
-
----
-
-## Accepted Column
-
-Displays:
-
-- Processed requests
-- Accepted status
-- Completed request history
-
-Cards automatically move here after acceptance.
-
----
-
-# 6. Dashboard Wireframe Layout
+Open the dashboard:
 
 ```text
-+-----------------------------------------------------------------------------------+
-|                                AGRI-CONNECT DASHBOARD                             |
-+---------------------------------------------------+-------------------------------+
-| PENDING REQUESTS                                  | ACCEPTED REQUESTS             |
-+---------------------------------------------------+-------------------------------+
-| [ Card #102 ]                                     | [ Card #101 ]                 |
-| Farmer: Juan Dela Cruz                            | Farmer: Maria Santos          |
-| Produce: Rice Premium (50 bags)                   | Produce: Yellow Corn (25 bags)|
-| Time: 16:15:30                                    | Status: [ ✓ ACCEPTED ]        |
-| Action: [ ACCEPT REQUEST ]                        |                               |
-|                                                   |                               |
-| [ Card #103 ]                                     |                               |
-| Farmer: Antonio Reyes                             |                               |
-| Produce: Red Onions (10 crates)                   |                               |
-| Time: 16:18:02                                    |                               |
-| Action: [ ACCEPT REQUEST ]                        |                               |
-+---------------------------------------------------+-------------------------------+
-| (Simulated Worker Thread: Appending real-time stream data dynamically...)        |
-+-----------------------------------------------------------------------------------+
+http://localhost:3000/farmer/dashboard
 ```
 
----
+## Verification Commands
 
-# 7. Status Update Logic
-
-Each pending request includes an action button:
-
-```text
-Accept Request
+```bash
+npm run lint
+npm run build
 ```
 
-When triggered:
-
-1. The selected request status changes from:
-
-```text
-Pending → Accepted
-```
-
-2. The dashboard state updates instantly
-
-3. The card automatically moves from:
-   - Pending Column
-   - to Accepted Column
-
-This simulates a real-time workflow transition system.
-
----
-
-## Example Update Flow
-
-```text
-User Clicks Accept Button
-            ↓
-Update Request Status
-            ↓
-Refresh Local State
-            ↓
-Move Card Across Columns
-```
-
----
-
-# 8. Simulated Notifications & Real-Time Events
-
-To mimic WebSocket-based real-time activity without a backend:
-
-- A timer mechanism such as `setInterval`
-- Or a lightweight event listener
-
-will periodically generate new mock requests.
-
----
-
-## Simulated Event Flow
-
-```text
-Timer Trigger
-      ↓
-Generate Mock Request
-      ↓
-Append Request to State
-      ↓
-Render New Pending Card
-```
-
----
-
-## Simulated Real-time Features
-
-The mock implementation conceptually reproduces:
-
-- Redis Pub/Sub streams
-- WebSocket push updates
-- Real-time dashboard synchronization
-- Automatic queue insertion
-
-without requiring a live infrastructure.
-
----
-
-# 9. Real-Time Testing Strategy
-
-## Unit Testing Strategy
-
-Unit tests verify the internal business logic of the dashboard.
-
----
-
-## Coverage Areas
-
-- Request status transition logic
-- Card movement between columns
-- Mock request generation
-- State filtering functions
-- Timestamp ordering
-- Pending queue insertion logic
-
----
-
-## Example Unit Test Cases
-
-```text
-✓ Should change request status from Pending to Accepted
-✓ Should remove accepted card from Pending column
-✓ Should insert accepted card into Accepted column
-✓ Should generate new mock request successfully
-✓ Should append new request at the top of Pending queue
-```
-
----
-
-# 10. End-to-End (E2E) Testing Strategy
-
-E2E testing validates complete dashboard behavior using:
-
-- Playwright
-  or
-- Cypress
-
----
-
-## E2E Test Scenarios
-
-### Initial Load Test
-
-Verify:
-
-- Initial mock requests display correctly
-- Pending and Accepted columns render properly
-
----
-
-### State Transition Test
-
-Simulate:
-
-```text
-Click "Accept Request"
-```
-
-Verify:
-
-- Card disappears from Pending column
-- Card appears in Accepted column instantly
-
----
-
-### Real-time Update Test
-
-Simulate:
-
-- Timer-triggered mock event
-  or
-- WebSocket push event
-
-Verify:
-
-- New request appears automatically
-- Dashboard updates without refresh
-
----
-
-# 11. Dashboard Verification Checklist
-
-## Initial Rendering
-
-```text
-✓ Mock data loads correctly
-✓ Pending requests display properly
-✓ Accepted requests display properly
-```
-
----
-
-## State Update Verification
-
-```text
-✓ Clicking Accept Request updates status
-✓ Card moves across columns instantly
-✓ UI refresh occurs automatically
-```
-
----
-
-## Automatic Update Verification
-
-```text
-✓ Timer generates new mock request
-✓ New request appears at top of pending queue
-✓ Dashboard updates without manual reload
-```
-
----
-
-# 12. Conclusion
-
-The AgriConnect dashboard architecture demonstrates a scalable, high-concurrency agricultural workflow platform using:
-
-- Next.js 15 App Router
-- Real-time synchronization concepts
-- Kanban-based workflow management
-- Mock state-driven UI architecture
-- Simulated streaming updates
-- Structured testing strategies
-
-This conceptual dashboard exercise reproduces enterprise-grade real-time logistics coordination behavior without requiring actual backend implementation.
+Both commands were used to verify the implementation.
