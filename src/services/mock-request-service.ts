@@ -5,6 +5,7 @@ import {
   markRequestAccepted,
   sortByNewestActivity,
 } from "@/utils/mock-data-factory";
+import { formatUtcHourMinute } from "@/utils/date-format";
 
 export type DashboardMetrics = {
   total: number;
@@ -129,14 +130,8 @@ export function getThroughputData(requests: ProduceRequest[]): ThroughputDatum[]
   const recent = sortByNewestActivity(requests).slice(0, 8).reverse();
 
   return recent.map((request) => {
-    const time = new Intl.DateTimeFormat("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(new Date(request.acceptedAt ?? request.timestamp));
-
     return {
-      time,
+      time: formatUtcHourMinute(request.acceptedAt ?? request.timestamp),
       Pending: request.status === "Pending" ? 1 : 0,
       Accepted: request.status === "Accepted" ? 1 : 0,
     };

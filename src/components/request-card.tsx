@@ -2,6 +2,7 @@ import type { ProduceRequest } from "@/types/request";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/utils/cn";
+import { formatUtcTime } from "@/utils/date-format";
 
 type RequestCardProps = {
   request: ProduceRequest;
@@ -13,14 +14,6 @@ const priorityClasses = {
   Express: "border-amber-200 bg-amber-50 text-amber-800",
   Standard: "border-stone-200 bg-stone-50 text-stone-700",
 };
-
-function formatTime(timestamp: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(new Date(timestamp));
-}
 
 export function RequestCard({ onAccept, request }: RequestCardProps) {
   const isPending = request.status === "Pending";
@@ -53,7 +46,7 @@ export function RequestCard({ onAccept, request }: RequestCardProps) {
           {request.produce}
         </div>
         <div className="mt-1 text-sm text-stone-600">
-          {request.quantity.toLocaleString("en-US")} {request.unit} ·{" "}
+          {request.quantity.toLocaleString("en-US")} {request.unit} -{" "}
           {request.distributor}
         </div>
       </div>
@@ -76,7 +69,7 @@ export function RequestCard({ onAccept, request }: RequestCardProps) {
             Arrived
           </dt>
           <dd className="mt-1 font-mono text-stone-900">
-            {formatTime(request.timestamp)}
+            {formatUtcTime(request.timestamp)}
           </dd>
         </div>
         <div>
@@ -105,7 +98,7 @@ export function RequestCard({ onAccept, request }: RequestCardProps) {
         </Button>
       ) : (
         <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900">
-          Accepted at {formatTime(request.acceptedAt ?? request.timestamp)}
+          Accepted at {formatUtcTime(request.acceptedAt ?? request.timestamp)}
         </div>
       )}
     </Card>

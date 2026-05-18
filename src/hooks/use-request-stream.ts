@@ -14,16 +14,20 @@ import {
 } from "@/services/mock-request-service";
 
 const STREAM_INTERVAL_MS = 6500;
+const FALLBACK_INITIAL_TIMESTAMP = "2026-05-16T16:00:00Z";
 
 export function useRequestStream(initialRequests: ProduceRequest[]) {
   const [requests, setRequests] = useState(initialRequests);
   const [isStreaming, setIsStreaming] = useState(true);
-  const [recentEvent, setRecentEvent] = useState<StreamEvent>({
+  const [recentEvent, setRecentEvent] = useState<StreamEvent>(() => ({
     id: "initial-load",
     label: "Initial request queue loaded",
-    timestamp: new Date().toISOString(),
+    timestamp:
+      initialRequests[0]?.acceptedAt ??
+      initialRequests[0]?.timestamp ??
+      FALLBACK_INITIAL_TIMESTAMP,
     tone: "idle",
-  });
+  }));
   const sequenceRef = useRef(200);
 
   useEffect(() => {

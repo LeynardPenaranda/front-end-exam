@@ -66,6 +66,7 @@ agriconnect-platform/
 │   │
 │   └── utils/
 │       ├── cn.ts
+│       ├── date-format.ts
 │       └── mock-data-factory.ts
 │
 ├── package.json
@@ -103,6 +104,7 @@ agriconnect-platform/
 - `utils/mock-data-factory.ts` owns seed data, mock request generation, status transition helpers, and sorting.
 - `services/mock-request-service.ts` exposes dashboard-facing helpers for metrics, filtering, chart data, and request updates.
 - `hooks/use-request-stream.ts` manages local dashboard state, the simulated live stream, accept actions, and derived analytics.
+- `utils/date-format.ts` formats ISO timestamps deterministically for SSR and client hydration.
 - `utils/cn.ts` joins conditional Tailwind class names.
 
 ## State Flow

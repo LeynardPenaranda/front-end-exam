@@ -2,6 +2,7 @@ import type { DashboardMetrics } from "@/services/mock-request-service";
 import type { StreamEvent } from "@/types/request";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
+import { formatUtcTime } from "@/utils/date-format";
 
 type DashboardHeaderProps = {
   isStreaming: boolean;
@@ -16,14 +17,6 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
   style: "currency",
 });
-
-function formatEventTime(timestamp: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(new Date(timestamp));
-}
 
 function MetricTile({
   label,
@@ -81,8 +74,8 @@ export function DashboardHeader({
                   isStreaming ? "bg-emerald-500" : "bg-stone-400",
                 )}
               />
-              Stream {isStreaming ? "active" : "paused"} ·{" "}
-              {formatEventTime(recentEvent.timestamp)}
+              Stream {isStreaming ? "active" : "paused"} -{" "}
+              {formatUtcTime(recentEvent.timestamp)}
             </div>
             <Button onClick={onToggleStream} variant="secondary">
               {isStreaming ? "Pause Stream" : "Resume Stream"}
